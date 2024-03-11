@@ -2,23 +2,28 @@ package chatsapp;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.net.Socket;
 import java.util.*;
 import java.text.*;
 import javax.swing.border.*;
+import java.net.*;
+import java.io.*;
 
-public class Client extends JFrame implements ActionListener{
+public class Client implements ActionListener{
     JTextField text;
-    JPanel textarea;
-    Box vertical=Box.createVerticalBox();
+    static JPanel textarea;
+    static Box vertical=Box.createVerticalBox();
+    static DataOutputStream dout;
+    static JFrame f=new JFrame();
     
     Client(){
-        setLayout(null);
+        f.setLayout(null);
         
         JPanel header=new JPanel();
         header.setBackground(Color.black);
         header.setBounds(0,0,600,50);
         header.setLayout(null);
-        add(header);
+        f.add(header);
         
         ImageIcon i1=new ImageIcon(ClassLoader.getSystemResource("icons/3.png"));
         Image i2=i1.getImage().getScaledInstance(20, 20, Image.SCALE_DEFAULT);
@@ -48,30 +53,31 @@ public class Client extends JFrame implements ActionListener{
         
         textarea=new JPanel();
         textarea.setBounds(5, 50, 590, 570);
-        add(textarea);
+        f.add(textarea);
         
         text =new JTextField();
         text.setBounds(5, 655, 430, 40);
         text.setFont(new Font("SAN_SEREF",Font.PLAIN,16));
-        add(text);
+        f.add(text);
         
         JButton send=new JButton("send");
         send.setBounds(450,655,123,40);
         send.setBackground(Color.BLACK);
         send.setForeground(Color.WHITE);
         send.addActionListener(this);
-        add(send);
+        f.add(send);
         
-        setSize(615,750);
-        setLocation(870,70);
-        getContentPane().setBackground(Color.WHITE);
+        f.setSize(615,750);
+        f.setLocation(870,70);
+        f.getContentPane().setBackground(Color.WHITE);
         
         
-        setVisible(true);
+        f.setVisible(true);
     }
     
     @Override
     public void actionPerformed(ActionEvent ae){
+       try{
         String msgtyped = text.getText();
         
         JPanel jp = formatLabel(msgtyped);
@@ -85,12 +91,16 @@ public class Client extends JFrame implements ActionListener{
         
         textarea.add(vertical, BorderLayout.PAGE_START);
         
+        dout.writeUTF(msgtyped);
+        
         text.setText("");
         
-        repaint();
-        invalidate();
-        validate();
-        
+        f.repaint();
+        f.invalidate();
+        f.validate();
+       }catch(Exception e){
+           e.printStackTrace();
+       }
     }
     
     public static JPanel formatLabel(String msgtyped){
@@ -119,5 +129,30 @@ public class Client extends JFrame implements ActionListener{
     
     public static void main(String[]args){
         new Client();
+        
+        try{
+            Socket s= new Socket("127.0.0.1",6001);
+            DataInputStream din=new DataInputStream(s.getInputStream());
+            dout=new DataOutputStream(s.getOutputStream());
+            
+            while(true){
+                    textarea.setLayout(new BorderLayout());
+                    
+                    String msg = din.readUTF();
+                    JPanel panel=formatLabel(msg);
+                    
+                    JPanel left=new JPanel(new BorderLayout());
+                    left.add(panel, BorderLayout.LINE_START);
+                    vertical.add(left);
+                    vertical.add(Box.createVerticalStrut(15));
+                    textarea.add(vertical, BorderLayout.PAGE_START);
+                    
+                    f.validate();
+                }
+            }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        }
     }
 }
